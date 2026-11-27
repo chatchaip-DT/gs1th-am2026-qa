@@ -2,16 +2,22 @@
  * GS1 Thailand – Event Q&A (Google Apps Script Web App) — แยกตาม Session
  * ---------------------------------------------------------------
  * หน้าผู้เข้าร่วม : GitHub Pages → ส่งคำถามผ่าน doPost (ไม่ต้องล็อกอิน)
- * หน้าหลังบ้าน   : <WEB_APP_URL>?page=admin&key=<ADMIN_KEY> → MC / Moderator / Officer
+ * หน้าหลังบ้าน   : <WEB_APP_URL>?page=admin&key=<ADMIN_KEY> → Speaker / Officer
  *
  * การเก็บข้อมูลใน Google Sheet
  *  - คำถามแยกแท็บตาม Session เช่น "S01 09.30-09.50", "S02 09.50-10.20", …
- *  - แท็บ "Agenda"   : รายการ Session + จำนวนคำถามแต่ละ Session
- *  - แท็บ "AuditLog" : log การแก้ไขทุกคำถาม (รวมแท็บเดียวเหมือนเดิม)
+ *    · คำถามจากผู้เข้าร่วม: ลำดับ 1, 2, 3 … ต่อ Session (id เช่น S02-003)
+ *    · คำถามที่ Officer เตรียมไว้ให้ Speaker: ติดดาวอัตโนมัติ (id เช่น S02-P1)
+ *  - แท็บ "Agenda"   : รายการ Session + จำนวนคำถาม (เตรียมไว้ / ผู้เข้าร่วม / ยังไม่ตอบ / ตอบแล้ว)
+ *  - แท็บ "AuditLog" : log ทุกการส่ง/แก้ไขคำถาม (รวมแท็บเดียว มีคอลัมน์ Session)
+ *
+ * สถานะคำถามมี 2 แบบ: pending (ยังไม่ตอบ) / answered (ตอบแล้ว) — Officer เป็นคนกด
  *
  * คำถามเข้า Session ไหน
  *  - Auto: ตามเวลาที่ส่ง (เวลาไทย) — ช่วงพัก/ก่อนเริ่ม จะเข้า Session ถัดไป, หลังจบวันจะเข้า Session สุดท้าย
  *  - ทีมงานล็อก Session ปัจจุบันเองได้จากหน้า Console (กรณีกำหนดการเลื่อน)
+ *
+ * แก้ CONFIG แล้วรัน setup() ทุกครั้ง (รันซ้ำได้ ไม่ลบข้อมูล)
  */
 
 // ====== ตั้งค่างาน ======
@@ -32,18 +38,37 @@ const CONFIG = {
     { code: 'S09', start: '14:45', end: '15:00', icon: 'boxes',    title: 'ยกระดับ Traceability ให้สมบูรณ์แบบ ด้วยระบบผูกข้อมูลสินค้า (Aggregation Solution)' },
     { code: 'S10', start: '15:00', end: '15:15', icon: 'scan',     title: 'ยกระดับการทำงานยุคใหม่ ด้วยเทคโนโลยี Auto-ID' }
   ],
-  ROLES: ['MC', 'Moderator', 'Officer'],
+  // คำถามที่ Officer เตรียมไว้ให้ Speaker (ติดดาวอัตโนมัติ, แสดงบนสุดของ Session)
+  PRESET_QUESTIONS: {
+    S02: [
+      'ผู้ประกอบการไทยหลายรายผลิตสินค้าหลายกลุ่ม ทั้งเครื่องสำอาง ยา เครื่องมือแพทย์ รวมถึงอาหาร ซึ่งอยู่คนละกองของ อย. อยากทราบว่า อย. มี plan จะทำแพลตฟอร์มกลางที่เดียวให้รายย่อยใช้หรือไม่?',
+      'ผู้ประกอบการจำเป็นต้องใช้ 2D Barcode มาตรฐาน GS1 เพื่อที่จะทำให้ถูกต้องตาม อย. หรือไม่?'
+    ],
+    S03: [
+      "Why do we have to act now? What will happen to us if we don't comply with the EU rules and regulations? Will our product be suddenly denied at the border?",
+      'You advised us to start collecting upstream supplier data early, before rules are final. Here in Thailand, many of our local suppliers are small businesses or farms still working on paper and many manufacturers worry about exposing confidential supplier lists. From your Sri Lanka pilot, what is the simplest, low-cost way to get small suppliers on board while protecting our business secrets?'
+    ],
+    S07: [
+      'CPRAM ค่อนข้างประสบความสำเร็จในการใช้ GS1 DataMatrix เพื่อป้องกันการขายสินค้าหมดอายุ ณ จุดขาย แต่ตลาดต้องการ QR Code มากกว่าเพราะทำให้คนทั่วไปสแกนได้ ทาง CPRAM คิดยังไงกับประเด็นนี้บ้าง?',
+      'เพราะ GS1 มี Ambition 2027 มีแนวโน้มที่ CP Axtra จะนำ 2D Barcode มาเป็นข้อกำหนดหลักในการนำสินค้าเข้าวางขายไหม และสำหรับแบรนด์ที่ยอมลงทุนทำก่อนในปี 2027 จะได้แต้มต่ออะไรที่เป็นรูปธรรมบ้าง เช่น ตรวจผ่าน QA ขึ้นเชลฟ์ไวขึ้น (Fast-Track) หรืออาจจะอื่นๆ?'
+    ]
+  },
+  ROLES: ['Speaker', 'Officer'],
   LOG_SHEET: 'AuditLog',
   AGENDA_SHEET: 'Agenda',
   MAX_LEN: 500,
   COOLDOWN_SEC: 15
 };
 
-const HEADERS = ['id', 'submittedAt', 'session', 'question', 'name', 'organization',
+// คอลัมน์ในแท็บ Session (ลำดับนี้ = ลำดับในชีต)
+const HEADERS = ['no', 'id', 'type', 'submittedAt', 'session', 'question', 'name', 'organization',
   'status', 'starred', 'note', 'updatedAt', 'updatedBy', 'clientId'];
-const STATUS = ['new', 'approved', 'answered', 'hidden'];
+const COL = {};
+HEADERS.forEach(function (h, i) { COL[h] = i + 1; });   // เลขคอลัมน์ (เริ่ม 1)
+const LOG_HEADERS = ['at', 'by', 'session', 'questionId', 'action'];
+const TEXT_COLS = ['question', 'name', 'organization', 'note'];
 
-// ====== 1) รันครั้งแรก (หรือรันซ้ำได้): สร้างแท็บทั้งหมด ======
+// ====== 1) รันครั้งแรก/หลังแก้ CONFIG (รันซ้ำได้): สร้าง/ปรับแท็บ + ใส่คำถามที่เตรียมไว้ ======
 function setup() {
   const props = PropertiesService.getScriptProperties();
   let ss = null;
@@ -53,8 +78,9 @@ function setup() {
   if (!ss) ss = SpreadsheetApp.create('GS1TH Event Q&A – Data');
   props.setProperty('SHEET_ID', ss.getId());
 
-  CONFIG.SESSIONS.forEach(function (s) { sessionSheet_(s, true); });
-  logSheet_();
+  CONFIG.SESSIONS.forEach(function (s) { const sh = sessionSheet_(s, true); migrateSessionSheet_(sh); styleSessionSheet_(sh); });
+  migrateLog_();
+  seedPresets_();
   agendaSheet_(true);
   orderTabs_();
 
@@ -77,7 +103,7 @@ function doGet(e) {
   const cfg = {
     eventName: CONFIG.EVENT_NAME,
     subtitle: CONFIG.EVENT_SUBTITLE,
-    sessions: CONFIG.SESSIONS,
+    sessions: isAdmin ? CONFIG.SESSIONS : [],   // หน้าส่งคำถามสำรองไม่ให้เลือก Session (เข้าตามเวลา)
     roles: CONFIG.ROLES,
     maxLen: CONFIG.MAX_LEN
   };
@@ -106,7 +132,7 @@ function doPost(e) {
   return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// ====== 3) ผู้เข้าร่วมส่งคำถาม → เข้าแท็บของ Session ปัจจุบัน ======
+// ====== 3) ผู้เข้าร่วมส่งคำถาม → เข้าแท็บของ Session ปัจจุบัน (ได้ลำดับ 1, 2, 3 …) ======
 function submitQuestion(p) {
   p = p || {};
   if (p.website) return { ok: true, id: '' };            // honeypot กันบอท
@@ -129,30 +155,32 @@ function submitQuestion(p) {
   lock.waitLock(20000);
   try {
     const sh = sessionSheet_(s, true);
-    const id = nextId_(sh, s.code);
-    sh.appendRow([id, new Date(), label_(s), safe_(question), safe_(name), safe_(org),
-      'new', false, '', '', '', cid]);
+    const no = nextNo_(sh);
+    const id = s.code + '-' + ('00' + no).slice(-3);
+    sh.appendRow(rowOf_({ no: no, id: id, type: 'audience', submittedAt: new Date(), session: label_(s),
+      question: question, name: name, organization: org, status: 'pending', starred: false, clientId: cid }));
+    log_('Attendee', s.code, id, 'submitted #' + no);
     if (cid) cache.put('cd_' + cid, '1', CONFIG.COOLDOWN_SEC);
-    return { ok: true, id: id, session: s.code, sessionTitle: s.title };
+    return { ok: true, id: id, no: no, session: s.code, sessionTitle: s.title };
   } finally {
     lock.releaseLock();
   }
 }
 
-// ====== 4) หลังบ้าน: ภาพรวมทุก Session (จำนวนคำถามแต่ละสถานะ + Session ปัจจุบัน) ======
+// ====== 4) หลังบ้าน: ภาพรวมทุก Session ======
 function getOverview(key) {
   requireKey_(key);
   const ss = ss_();
-  agendaSheet_(false);
   const sessions = CONFIG.SESSIONS.map(function (s) {
-    const counts = { new: 0, approved: 0, answered: 0, hidden: 0, total: 0 };
+    const counts = { pending: 0, answered: 0, preset: 0, audience: 0, total: 0 };
     const sh = ss.getSheetByName(tabName_(s));
     const last = sh ? sh.getLastRow() : 0;
     if (last >= 2) {
-      sh.getRange(2, 1, last - 1, 7).getValues().forEach(function (r) {
-        if (!r[0]) return;
-        const st = STATUS.indexOf(String(r[6])) >= 0 ? String(r[6]) : 'new';
-        counts[st]++; counts.total++;
+      sh.getRange(2, 1, last - 1, COL.status).getValues().forEach(function (r) {
+        if (!r[COL.id - 1]) return;
+        counts[status_(r[COL.status - 1])]++;
+        counts[r[COL.type - 1] === 'preset' ? 'preset' : 'audience']++;
+        counts.total++;
       });
     }
     return { code: s.code, counts: counts };
@@ -175,18 +203,21 @@ function listQuestions(key, code, knownHash) {
   const sh = ss_().getSheetByName(tabName_(s));
   const last = sh ? sh.getLastRow() : 0;
   const rows = last < 2 ? [] : sh.getRange(2, 1, last - 1, HEADERS.length).getValues();
-  const items = rows.filter(function (r) { return r[0]; }).map(function (r) {
+  const items = rows.filter(function (r) { return r[COL.id - 1]; }).map(function (r) {
+    const g = function (h) { return r[COL[h] - 1]; };
     return {
-      id: String(r[0]),
-      at: toMs_(r[1]),
-      question: unq_(r[3]),
-      name: unq_(r[4]),
-      org: unq_(r[5]),
-      status: STATUS.indexOf(String(r[6])) >= 0 ? String(r[6]) : 'new',
-      starred: r[7] === true || String(r[7]).toUpperCase() === 'TRUE',
-      note: unq_(r[8]),
-      updatedAt: toMs_(r[9]),
-      updatedBy: String(r[10] || '')
+      id: String(g('id')),
+      no: String(g('no')),
+      type: g('type') === 'preset' ? 'preset' : 'audience',
+      at: toMs_(g('submittedAt')),
+      question: unq_(g('question')),
+      name: unq_(g('name')),
+      org: unq_(g('organization')),
+      status: status_(g('status')),
+      starred: bool_(g('starred')),
+      note: unq_(g('note')),
+      updatedAt: toMs_(g('updatedAt')),
+      updatedBy: String(g('updatedBy') || '')
     };
   });
   const json = JSON.stringify(items);
@@ -195,47 +226,54 @@ function listQuestions(key, code, knownHash) {
   return { ok: true, changed: true, hash: hash, items: items };
 }
 
-// ====== 6) หลังบ้าน: เปลี่ยนสถานะ / ปักดาว / โน้ต / ย้าย Session ======
+// ====== 6) หลังบ้าน (Officer): ตอบแล้ว/ยังไม่ตอบ / ติดดาว / โน้ต / ย้าย Session ======
 function updateQuestion(key, id, ch, by) {
   requireKey_(key);
   ch = ch || {};
-  by = clean_(by, 60) || 'Console';
+  by = clean_(by, 60) || 'Officer';
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     const loc = locate_(id);
     if (!loc) return { ok: false, error: 'ไม่พบคำถาม ' + id };
-    const sh = loc.sheet, r = loc.row;
+    const sh = loc.sheet, r = loc.row, code = loc.code;
 
-    // ย้ายไป Session อื่น: คัดลอกแถวไปแท็บปลายทาง (ได้หมายเลขใหม่) แล้วลบแถวเดิม
+    // ย้ายไป Session อื่น (เฉพาะคำถามจากผู้เข้าร่วม): ได้ลำดับใหม่ของ Session ปลายทาง แล้วลบแถวเดิม
     if (ch.moveTo) {
       const target = sessionByCode_(ch.moveTo);
       if (!target) return { ok: false, error: 'ไม่พบ Session ปลายทาง' };
-      if (tabName_(target) === sh.getName()) return { ok: true, id: id };
-      const row = sh.getRange(r, 1, 1, HEADERS.length).getValues()[0];
+      if (target.code === code) return { ok: true, id: id };
+      const vals = sh.getRange(r, 1, 1, HEADERS.length).getValues()[0];
+      if (vals[COL.type - 1] === 'preset') return { ok: false, error: 'คำถามที่เตรียมไว้ย้าย Session ไม่ได้' };
+      const o = {};
+      HEADERS.forEach(function (h, i) { o[h] = vals[i]; });
       const tsh = sessionSheet_(target, true);
-      const newId = nextId_(tsh, target.code);
-      row[0] = newId; row[2] = label_(target); row[9] = new Date(); row[10] = by;
-      tsh.appendRow(row);
+      o.no = nextNo_(tsh);
+      o.id = target.code + '-' + ('00' + o.no).slice(-3);
+      o.session = label_(target); o.updatedAt = new Date(); o.updatedBy = by;
+      tsh.appendRow(rowOf_(o));
       sh.deleteRow(r);
-      log_(by, id, 'moved to ' + target.code + ' as ' + newId);
-      return { ok: true, id: newId, session: target.code };
+      log_(by, code, id, 'moved to ' + target.code + ' as ' + o.id);
+      return { ok: true, id: o.id, session: target.code };
     }
 
     const changes = [];
     if (ch.status !== undefined) {
-      if (STATUS.indexOf(ch.status) < 0) return { ok: false, error: 'สถานะไม่ถูกต้อง' };
-      sh.getRange(r, 7).setValue(ch.status); changes.push('status=' + ch.status);
+      if (ch.status !== 'pending' && ch.status !== 'answered') return { ok: false, error: 'สถานะไม่ถูกต้อง' };
+      sh.getRange(r, COL.status).setValue(ch.status);
+      changes.push(ch.status === 'answered' ? 'answered' : 'unanswered');
     }
     if (ch.starred !== undefined) {
-      sh.getRange(r, 8).setValue(!!ch.starred); changes.push('starred=' + !!ch.starred);
+      sh.getRange(r, COL.starred).setValue(!!ch.starred);
+      changes.push(ch.starred ? 'starred' : 'unstarred');
     }
     if (ch.note !== undefined) {
-      sh.getRange(r, 9).setValue(safe_(clean_(ch.note, 300))); changes.push('note');
+      sh.getRange(r, COL.note).setValue(safe_(clean_(ch.note, 300)));
+      changes.push('note');
     }
     if (!changes.length) return { ok: true, id: id };
-    sh.getRange(r, 10, 1, 2).setValues([[new Date(), by]]);
-    log_(by, id, changes.join(', '));
+    sh.getRange(r, COL.updatedAt, 1, 2).setValues([[new Date(), by]]);
+    log_(by, code, id, changes.join(', '));
     return { ok: true, id: id };
   } finally {
     lock.releaseLock();
@@ -246,9 +284,10 @@ function updateQuestion(key, id, ch, by) {
 function setCurrentSession(key, code, by) {
   requireKey_(key);
   const props = PropertiesService.getScriptProperties();
-  if (code === 'auto' || !sessionByCode_(code)) props.deleteProperty('CURRENT_SESSION');
+  const s = sessionByCode_(code);
+  if (!s) props.deleteProperty('CURRENT_SESSION');
   else props.setProperty('CURRENT_SESSION', code);
-  log_(clean_(by, 60) || 'Console', '-', 'current_session=' + (sessionByCode_(code) ? code : 'auto'));
+  log_(clean_(by, 60) || 'Officer', s ? s.code : '-', '-', 'current_session=' + (s ? s.code : 'auto'));
   return getOverview(key);
 }
 
@@ -287,17 +326,17 @@ function currentSession_() {
 function tabName_(s) { return s.code + ' ' + s.start.replace(':', '.') + '-' + s.end.replace(':', '.'); }
 function label_(s) { return s.code + ' ' + s.start + '-' + s.end + ' ' + s.title; }
 
-function nextId_(sh, code) {
-  // เลขรันต่อจากเลขสูงสุดในแท็บ (กันเลขซ้ำแม้มีการลบ/ย้ายแถว)
+// ลำดับคำถามจากผู้เข้าร่วมถัดไปของแท็บ (ต่อจากเลขสูงสุด กันเลขซ้ำแม้มีการลบ/ย้ายแถว)
+function nextNo_(sh) {
   const last = sh.getLastRow();
   let max = 0;
   if (last >= 2) {
-    sh.getRange(2, 1, last - 1, 1).getValues().forEach(function (r) {
+    sh.getRange(2, COL.id, last - 1, 1).getValues().forEach(function (r) {
       const m = String(r[0]).match(/-(\d+)$/);
       if (m) max = Math.max(max, Number(m[1]));
     });
   }
-  return code + '-' + ('00' + (max + 1)).slice(-3);
+  return max + 1;
 }
 
 function locate_(id) {
@@ -308,8 +347,8 @@ function locate_(id) {
   for (var i = 0; i < order.length; i++) {
     const sh = ss.getSheetByName(tabName_(order[i]));
     if (!sh || sh.getLastRow() < 2) continue;
-    const cell = sh.getRange(2, 1, sh.getLastRow() - 1, 1).createTextFinder(id).matchEntireCell(true).findNext();
-    if (cell) return { sheet: sh, row: cell.getRow() };
+    const cell = sh.getRange(2, COL.id, sh.getLastRow() - 1, 1).createTextFinder(id).matchEntireCell(true).findNext();
+    if (cell) return { sheet: sh, row: cell.getRow(), code: order[i].code };
   }
   return null;
 }
@@ -321,18 +360,79 @@ function ss_() {
   return SpreadsheetApp.openById(id);
 }
 
+function rowOf_(o) {
+  return HEADERS.map(function (h) {
+    const v = o[h] === undefined || o[h] === null ? '' : o[h];
+    return TEXT_COLS.indexOf(h) >= 0 ? safe_(v) : v;
+  });
+}
+
+function styleSessionSheet_(sh) {
+  sh.setFrozenRows(1);
+  sh.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#002C6C').setFontColor('#ffffff');
+  sh.setColumnWidth(COL.question, 420);
+  sh.setColumnWidth(COL.no, 50);
+  sh.setTabColor('#F26334');
+  const rows = Math.max(sh.getMaxRows() - 1, 1);
+  sh.getRange(2, COL.submittedAt, rows, 1).setNumberFormat('dd/MM/yyyy HH:mm:ss');
+  sh.getRange(2, COL.updatedAt, rows, 1).setNumberFormat('dd/MM/yyyy HH:mm:ss');
+}
+
 function sessionSheet_(s, create) {
   const ss = ss_();
   let sh = ss.getSheetByName(tabName_(s));
   if (!sh && create) {
     sh = ss.insertSheet(tabName_(s));
     sh.appendRow(HEADERS);
-    sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#002C6C').setFontColor('#ffffff');
-    sh.setColumnWidth(4, 420);
-    sh.setTabColor('#F26334');
+    styleSessionSheet_(sh);
   }
   return sh;
+}
+
+// แปลงแท็บ Session รูปแบบเก่า (ไม่มี no/type, สถานะ new/approved/hidden) เป็นรูปแบบใหม่ — ข้อมูลเดิมไม่หาย
+function migrateSessionSheet_(sh) {
+  const width = Math.max(sh.getLastColumn(), 1);
+  const head = sh.getRange(1, 1, 1, width).getValues()[0].map(String);
+  if (head.slice(0, HEADERS.length).join('|') === HEADERS.join('|')) return;
+  const last = sh.getLastRow();
+  const data = last >= 2 ? sh.getRange(2, 1, last - 1, width).getValues() : [];
+  const rows = data.filter(function (r) { return r[head.indexOf('id')]; }).map(function (r) {
+    const o = {};
+    head.forEach(function (h, i) { if (h) o[h] = r[i]; });
+    const id = String(o.id);
+    o.type = o.type || (/-P\d+$/.test(id) ? 'preset' : 'audience');
+    if (!o.no) o.no = o.type === 'preset' ? id.split('-').pop() : Number((id.match(/-(\d+)$/) || [])[1]) || '';
+    o.status = status_(o.status);
+    o.starred = bool_(o.starred);
+    return rowOf_(o);
+  });
+  sh.clear();
+  sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  if (rows.length) sh.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
+  styleSessionSheet_(sh);
+}
+
+// ใส่/อัปเดตคำถามที่ Officer เตรียมไว้ (id S0X-P1, S0X-P2 …) — สถานะ “ตอบแล้ว” เดิมไม่ถูกรีเซ็ต
+function seedPresets_() {
+  Object.keys(CONFIG.PRESET_QUESTIONS).forEach(function (code) {
+    const s = sessionByCode_(code);
+    if (!s) return;
+    const sh = sessionSheet_(s, true);
+    const last = sh.getLastRow();
+    const ids = last >= 2 ? sh.getRange(2, COL.id, last - 1, 1).getValues().map(function (r) { return String(r[0]); }) : [];
+    CONFIG.PRESET_QUESTIONS[code].forEach(function (q, i) {
+      const id = code + '-P' + (i + 1);
+      const at = ids.indexOf(id);
+      if (at < 0) {
+        sh.appendRow(rowOf_({ no: 'P' + (i + 1), id: id, type: 'preset', submittedAt: new Date(), session: label_(s),
+          question: q, name: 'คำถามที่เตรียมไว้', organization: 'Officer', status: 'pending', starred: true }));
+        log_('setup', code, id, 'preset added');
+      } else if (unq_(sh.getRange(at + 2, COL.question).getValue()) !== q) {
+        sh.getRange(at + 2, COL.question).setValue(safe_(q));
+        log_('setup', code, id, 'preset text updated');
+      }
+    });
+  });
 }
 
 function logSheet_() {
@@ -340,14 +440,35 @@ function logSheet_() {
   let log = ss.getSheetByName(CONFIG.LOG_SHEET);
   if (!log) {
     log = ss.insertSheet(CONFIG.LOG_SHEET);
-    log.appendRow(['at', 'by', 'questionId', 'change']);
+    log.appendRow(LOG_HEADERS);
     log.setFrozenRows(1);
+    log.getRange(1, 1, 1, LOG_HEADERS.length).setFontWeight('bold');
   }
   return log;
 }
 
-function log_(by, id, change) {
-  logSheet_().appendRow([new Date(), by, String(id), change]);
+// แปลง AuditLog รูปแบบเก่า [at, by, questionId, change] → [at, by, session, questionId, action]
+function migrateLog_() {
+  const log = logSheet_();
+  const width = Math.max(log.getLastColumn(), 1);
+  const head = log.getRange(1, 1, 1, width).getValues()[0].map(String);
+  if (head.slice(0, LOG_HEADERS.length).join('|') === LOG_HEADERS.join('|')) return;
+  const last = log.getLastRow();
+  const old = last >= 2 ? log.getRange(2, 1, last - 1, 4).getValues() : [];
+  const rows = old.map(function (r) {
+    const qid = String(r[2] || '-');
+    const m = String(r[3] || '').match(/current_session=(S\d+)/);
+    const sess = sessionByCode_(qid.split('-')[0]) ? qid.split('-')[0] : (m ? m[1] : '-');
+    return [r[0], r[1], sess, qid, r[3]];
+  });
+  log.clear();
+  log.getRange(1, 1, 1, LOG_HEADERS.length).setValues([LOG_HEADERS]).setFontWeight('bold');
+  if (rows.length) log.getRange(2, 1, rows.length, LOG_HEADERS.length).setValues(rows);
+  log.setFrozenRows(1);
+}
+
+function log_(by, session, id, action) {
+  logSheet_().appendRow([new Date(), by, session || '-', String(id), action]);
 }
 
 // เรียงแท็บ: Agenda → S01 … S10 → AuditLog (แท็บอื่นอยู่ท้าย)
@@ -369,15 +490,16 @@ function agendaSheet_(rebuild) {
   if (sh && !rebuild) return sh;
   if (!sh) sh = ss.insertSheet(CONFIG.AGENDA_SHEET, 0);
   sh.clear();
-  const rows = [['Session', 'เวลา', 'หัวข้อ', 'แท็บข้อมูล', 'คำถามทั้งหมด', 'ใหม่', 'คิว MC', 'ตอบแล้ว', 'ซ่อน']];
+  const L = function (h) { return String.fromCharCode(64 + COL[h]); };   // เลขคอลัมน์ → ตัวอักษร (A–Z)
+  const rows = [['Session', 'เวลา', 'หัวข้อ', 'แท็บข้อมูล', 'คำถามทั้งหมด', 'เตรียมไว้ (★)', 'จากผู้เข้าร่วม', 'ยังไม่ตอบ', 'ตอบแล้ว']];
   CONFIG.SESSIONS.forEach(function (s) {
     const t = "'" + tabName_(s) + "'!";
+    const rg = function (h) { return t + L(h) + '2:' + L(h); };
     rows.push([s.code, s.start + '-' + s.end, s.title, tabName_(s),
-      '=COUNTA(' + t + 'A2:A)',
-      '=COUNTIF(' + t + 'G2:G,"new")', '=COUNTIF(' + t + 'G2:G,"approved")',
-      '=COUNTIF(' + t + 'G2:G,"answered")', '=COUNTIF(' + t + 'G2:G,"hidden")']);
+      '=COUNTA(' + rg('id') + ')',
+      '=COUNTIF(' + rg('type') + ',"preset")', '=COUNTIF(' + rg('type') + ',"audience")',
+      '=COUNTIF(' + rg('status') + ',"pending")', '=COUNTIF(' + rg('status') + ',"answered")']);
   });
-  CONFIG.SESSIONS.forEach(function (s) { sessionSheet_(s, true); });
   sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
   sh.setFrozenRows(1);
   sh.getRange(1, 1, 1, rows[0].length).setFontWeight('bold').setBackground('#002C6C').setFontColor('#ffffff');
@@ -402,6 +524,9 @@ function requireKey_(key) {
   if (!keyOk_(key)) throw new Error('INVALID_KEY');
 }
 
+function status_(v) { return String(v) === 'answered' ? 'answered' : 'pending'; }   // new/approved/hidden เดิม = ยังไม่ตอบ
+function bool_(v) { return v === true || String(v).toUpperCase() === 'TRUE'; }
+
 function clean_(v, max) {
   return String(v == null ? '' : v)
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
@@ -411,6 +536,7 @@ function clean_(v, max) {
 
 // กันข้อความที่ขึ้นต้นด้วย = + - @ ถูกตีความเป็นสูตรใน Sheet
 function safe_(s) {
+  s = String(s == null ? '' : s);
   return /^[=+\-@]/.test(s) ? "'" + s : s;
 }
 
