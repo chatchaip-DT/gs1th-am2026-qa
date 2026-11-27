@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-:root{--navy:#002C6C;--navy2:#0b3d85;--orange:#F26334;--ink:#1b2333;--muted:#5b6475;--line:#dde2eb;--soft:#eef1f6;--ok:#1f8a4c;--warn:#b45309;--err:#b3261e;--qsize:17px}
+:root{--navy:#002C6C;--navy2:#0b3d85;--orange:#F26334;--ink:#1b2333;--muted:#5b6475;--line:#dde2eb;--soft:#eef1f6;--ok:#1f8a4c;--okbg:#e7f5ec;--warn:#b45309;--qsize:17px}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;font:15px/1.55 'IBM Plex Sans Thai',system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--soft)}
 body.big{--qsize:22px}
@@ -41,7 +41,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .tabs button{flex:none;border:0;background:transparent;color:rgba(255,255,255,.75);padding:10px 14px 12px;border-bottom:3px solid transparent;font-weight:600;min-height:44px}
 .tabs button[aria-selected=true]{color:#fff;border-bottom-color:var(--orange)}
 .tabs b{display:inline-block;min-width:22px;padding:0 6px;margin-left:6px;border-radius:999px;background:rgba(255,255,255,.16);font-size:12px;text-align:center}
-.tabs button[data-tab=new] b.has{background:var(--orange);color:#fff}
+.tabs button[data-tab=pending] b.has{background:var(--orange);color:#fff}
 
 /* Icons */
 .ico{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--soft);color:var(--navy)}
@@ -67,8 +67,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .sc .code{font-weight:700;color:var(--navy);font-size:14px}
 .sc .t{font-weight:600;font-size:15px;line-height:1.35;margin:4px 0 8px}
 .pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:12px;background:var(--soft);color:var(--navy2);white-space:nowrap}
-.pill.new{background:#fde9e2;color:#a33a14}
-.pill.new.zero{background:var(--soft);color:var(--muted)}
+.pill.pend{background:#fde9e2;color:#a33a14}
+.pill.pend.zero{background:var(--soft);color:var(--muted)}
+.pill.star{background:#fff3d6;color:#8a5a00}
 .livebadge{background:var(--orange);color:#fff;border-radius:6px;padding:0 6px;font-size:11px;font-weight:700;letter-spacing:.03em}
 .pills{display:flex;gap:6px;flex-wrap:wrap}
 .foot{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
@@ -78,13 +79,22 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px max(3vw,14px) 4px;max-width:1100px;margin:0 auto}
 .tools input{flex:1 1 220px;font:inherit;font-size:16px;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;min-height:44px}
 .list{display:grid;gap:12px;padding:10px max(3vw,14px) 60px;max-width:1100px;margin:0 auto}
-.q{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,30,80,.08);border-left:5px solid transparent}
+.q{display:flex;gap:14px;align-items:flex-start;background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,30,80,.08);border-left:5px solid transparent}
 .q.star{border-left-color:var(--orange)}
+.q.done .qbody{opacity:.72}
 .q.fresh{animation:fresh 2.4s ease-out}
 @keyframes fresh{0%{box-shadow:0 0 0 4px rgba(242,99,52,.55)}100%{box-shadow:0 1px 3px rgba(0,30,80,.08)}}
-.meta{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13px;color:var(--muted)}
-.qid{font-weight:700;color:var(--navy);font-size:14px}
-.qt{font-size:var(--qsize);line-height:1.45;margin:8px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere;font-weight:500}
+.num{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--navy);color:#fff;font-weight:700;font-size:18px;line-height:1;font-variant-numeric:tabular-nums}
+.num.w3{font-size:15px}
+.num.pre{background:var(--orange);font-size:20px}
+.q.done .num{background:var(--ok)}
+.qbody{flex:1}
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--muted)}
+.tag{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:0 7px;font-size:12px;font-weight:600}
+.tag.pre{background:#fff3d6;color:#8a5a00}
+.tag.ok{background:var(--okbg);color:var(--ok)}
+.tag.st{color:var(--orange);font-size:14px;padding:0}
+.qt{font-size:var(--qsize);line-height:1.45;margin:6px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere;font-weight:500}
 .by{color:var(--muted);font-size:14px}
 body.big .by{font-size:15px}
 .note{margin-top:8px;background:#fff7e6;border-radius:8px;padding:8px 10px;font-size:14px;color:#6b4a07;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -117,7 +127,8 @@ body.big .by{font-size:15px}
 
 @media(max-width:600px){
   :root{--qsize:16px}body.big{--qsize:20px}
-  .q{padding:14px}.a{min-height:38px;padding:0 12px;font-size:13px}.ttl{font-size:15px}
+  .q{padding:14px;gap:10px}.num{width:38px;height:38px;font-size:16px}.num.w3{font-size:13px}
+  .a{min-height:38px;padding:0 12px;font-size:13px}.ttl{font-size:15px}
   .sc .t{font-size:14px}.ico{width:40px;height:40px}
   .shead{flex-wrap:wrap;gap:8px}.sinfo{flex:1 1 100%}.bar{gap:8px}
 }
@@ -129,7 +140,7 @@ body.big .by{font-size:15px}
 
 <div class="top">
   <div class="bar">
-    <div class="ttl"><span id="aev"></span><small>Q&amp;A Console · เห็นเฉพาะทีมงาน ไม่แสดงขึ้นจอ</small></div>
+    <div class="ttl"><span id="aev"></span><small>Q&amp;A Console · เห็นเฉพาะ Speaker และทีมงาน ไม่แสดงขึ้นจอ</small></div>
     <span class="live" id="live"><i></i><span id="liveTxt">เชื่อมต่อ Google Sheet…</span></span>
     <label class="live" for="role">ฉันคือ</label>
     <select class="rolesel" id="role"></select>
@@ -141,10 +152,9 @@ body.big .by{font-size:15px}
       <div class="sinfo"><span class="ico" id="sIco"></span><div class="txt"><b id="sTitle"></b><span id="sMeta"></span></div></div>
     </div>
     <div class="tabs" role="tablist" id="tabs">
-      <button role="tab" data-tab="new">ใหม่ (รอคัดกรอง)<b id="c-new">0</b></button>
-      <button role="tab" data-tab="approved">คิว MC<b id="c-approved">0</b></button>
+      <button role="tab" data-tab="pending">ยังไม่ตอบ<b id="c-pending">0</b></button>
       <button role="tab" data-tab="answered">ตอบแล้ว<b id="c-answered">0</b></button>
-      <button role="tab" data-tab="hidden">ซ่อน<b id="c-hidden">0</b></button>
+      <button role="tab" data-tab="all">ทั้งหมด<b id="c-all">0</b></button>
     </div>
   </div>
 </div>
@@ -177,13 +187,15 @@ body.big .by{font-size:15px}
       <button class="sbtn" id="copyUrl">คัดลอกลิงก์</button>
       <a id="openUrl" href="#" target="_blank" rel="noopener" style="margin-left:10px">เปิดหน้าส่งคำถาม</a>
       <h3 style="margin-top:24px">ข้อมูลคำถาม</h3>
-      <p style="margin:0 0 10px">คำถามเก็บแยกแท็บตาม Session ใน Google Sheet (เช่น “S01 09.30-09.50”) มีแท็บ Agenda สรุปจำนวน และ AuditLog บันทึกทุกการเปลี่ยนแปลง</p>
+      <p style="margin:0 0 10px">คำถามเก็บแยกแท็บตาม Session ใน Google Sheet (เช่น “S01 09.30-09.50”) มีแท็บ Agenda สรุปจำนวน และ AuditLog บันทึกทุกการส่งและการเปลี่ยนแปลง</p>
       <a id="sheetUrl" href="#" target="_blank" rel="noopener">เปิด Google Sheet</a>
-      <h3 style="margin-top:24px">ขั้นตอนการทำงาน</h3>
+      <h3 style="margin-top:24px">วิธีใช้</h3>
       <ul>
-        <li>คำถามเข้า Session ตามเวลาอัตโนมัติ ถ้ากำหนดการเลื่อน ให้เลือก Session ที่กำลังรับคำถามด้านบนเอง</li>
-        <li><b>Officer / Moderator</b> เปิด Session → คัดกรองแท็บ “ใหม่” → “ส่งเข้าคิว MC” หรือ “ซ่อน” / ย้ายคำถามที่เข้าผิด Session ได้</li>
-        <li><b>MC</b> เปิด Session → แท็บ “คิว MC” อ่านคำถาม แล้วกด “ตอบแล้ว”</li>
+        <li><b>★ คำถามที่เตรียมไว้</b> แสดงบนสุดของ Session เสมอ ใช้ในกรณีผู้เข้าร่วมไม่มีคำถาม</li>
+        <li>คำถามจากผู้เข้าร่วมมี <b>เลขลำดับ 1, 2, 3 …</b> ตามลำดับที่ส่งเข้ามาใน Session นั้น (ใหม่สุดอยู่บน)</li>
+        <li><b>Speaker</b> เปิด Session เพื่ออ่านคำถาม (ดูอย่างเดียว)</li>
+        <li><b>Officer</b> กด “✓ ตอบแล้ว” เมื่อ Speaker ตอบคำถามนั้นแล้ว / ติดดาว / เขียนโน้ต / ย้ายคำถามที่เข้าผิด Session</li>
+        <li>คำถามเข้า Session ตามเวลาอัตโนมัติ ถ้ากำหนดการเลื่อน Officer เลือก Session ที่กำลังรับคำถามด้านบนเองได้</li>
       </ul>
     </div>
   </div>
@@ -192,7 +204,7 @@ body.big .by{font-size:15px}
 <!-- ===== Session view ===== -->
 <section id="sview" hidden>
   <div class="tools">
-    <input id="search" type="search" placeholder="ค้นหาคำถาม ชื่อ หน่วยงาน หรือหมายเลข">
+    <input id="search" type="search" placeholder="ค้นหาคำถาม ชื่อ หน่วยงาน หรือเลขลำดับ">
     <button class="sbtn" id="refresh">รีเฟรช</button>
   </div>
   <div class="list" id="list"></div>
@@ -202,7 +214,7 @@ body.big .by{font-size:15px}
 
 <script>
 {
-  const CFG = window.CFG || { eventName: 'Q&A', sessions: [], roles: ['MC', 'Moderator', 'Officer'] };
+  const CFG = window.CFG || { eventName: 'Q&A', sessions: [], roles: ['Speaker', 'Officer'] };
   const $ = (id) => document.getElementById(id);
   const ls = {
     get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
@@ -212,7 +224,6 @@ body.big .by{font-size:15px}
   const call = (fn, ...args) => new Promise((res, rej) => {
     google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args);
   });
-  const LABEL = { new: 'ใหม่', approved: 'คิว MC', answered: 'ตอบแล้ว', hidden: 'ซ่อน' };
   const SESS = CFG.sessions || [];
   const byCode = (c) => SESS.find((s) => s.code === c);
 
@@ -232,8 +243,10 @@ body.big .by{font-size:15px}
   const icon = (name) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (ICON[name] || ICON.services) + '"/></svg>';
 
   const KEY = CFG.key || '';
-  let role = ls.get('qa_role') || CFG.roles[0];
-  let view = 'hub', code = '', tab = 'new';
+  let role = ls.get('qa_role');
+  if (CFG.roles.indexOf(role) < 0) role = 'Officer';
+  const isOfficer = () => role === 'Officer';
+  let view = 'hub', code = '', tab = 'pending';
   let overview = null, items = [], hash = null, firstLoad = true;
   let editing = null, editKind = '', noteDraft = '', info = null;
   let hubTimer = null, sTimer = null, busy = false;
@@ -243,7 +256,12 @@ body.big .by{font-size:15px}
 
   // ---------- บทบาท ----------
   $('role').innerHTML = CFG.roles.map((r) => '<option' + (r === role ? ' selected' : '') + '>' + esc(r) + '</option>').join('');
-  $('role').addEventListener('change', () => { role = $('role').value; ls.set('qa_role', role); });
+  function applyRole() {
+    $('pin').hidden = !isOfficer();
+    editing = null;
+    render();
+  }
+  $('role').addEventListener('change', () => { role = $('role').value; ls.set('qa_role', role); applyRole(); });
 
   function handleErr(err) {
     const m = (err && err.message) || String(err);
@@ -274,7 +292,7 @@ body.big .by{font-size:15px}
 
   function countsOf(c) {
     const o = overview && overview.sessions.find((x) => x.code === c);
-    return (o && o.counts) || { new: 0, approved: 0, answered: 0, hidden: 0, total: 0 };
+    return (o && o.counts) || { pending: 0, answered: 0, preset: 0, audience: 0, total: 0 };
   }
   const curCode = () => (overview && overview.current.code) || '';
 
@@ -291,11 +309,12 @@ body.big .by{font-size:15px}
         '<span class="row1"><span class="code">' + esc(s.code) + '</span><span>' + esc(s.start) + '–' + esc(s.end) + '</span>' +
         (isCur ? '<span class="livebadge">LIVE</span>' : '') + '</span>' +
         '<span class="t" style="display:block">' + esc(s.title) + '</span>' +
-        '<span class="pills"><span class="pill new' + (c.new ? '' : ' zero') + '">ใหม่ ' + c.new + '</span>' +
-        '<span class="pill">คิว MC ' + c.approved + '</span><span class="pill">ตอบแล้ว ' + c.answered + '</span>' +
-        '<span class="pill">ทั้งหมด ' + c.total + '</span></span></span></button>';
+        '<span class="pills">' + (c.preset ? '<span class="pill star">★ เตรียมไว้ ' + c.preset + '</span>' : '') +
+        '<span class="pill">ผู้เข้าร่วม ' + c.audience + '</span>' +
+        '<span class="pill pend' + (c.pending ? '' : ' zero') + '">ยังไม่ตอบ ' + c.pending + '</span>' +
+        '<span class="pill">ตอบแล้ว ' + c.answered + '</span></span></span></button>';
     }).join('');
-    const totalNew = overview.sessions.reduce((n, x) => n + x.counts.new, 0);
+    const totalNew = overview.sessions.reduce((n, x) => n + x.counts.pending, 0);
     if (view === 'hub') document.title = (totalNew ? '(' + totalNew + ') ' : '') + 'Q&A Console';
   }
 
@@ -324,7 +343,7 @@ body.big .by{font-size:15px}
     $('search').value = '';
     $('hub').hidden = true; $('sview').hidden = false; $('shead').hidden = false;
     ls.set('qa_view', c);
-    setTab(role === 'MC' ? 'approved' : 'new');
+    setTab('pending');
     renderHeader();
     $('list').innerHTML = '<div class="empty"><b>กำลังโหลดคำถาม…</b></div>';
     loadSession();
@@ -353,7 +372,8 @@ body.big .by{font-size:15px}
       hash = r.hash;
       r.items.forEach((it) => { if (!seen.has(it.id)) { seen.add(it.id); if (!firstLoad) fresh.add(it.id); } });
       items = r.items; firstLoad = false;
-      render();
+      if (!editing) render();
+      else updateCounts();
     } catch (err) {
       if (!handleErr(err)) setLive(false);
     } finally { busy = false; }
@@ -376,26 +396,39 @@ body.big .by{font-size:15px}
   $('bigBtn').addEventListener('click', () => setBig(!document.body.classList.contains('big')));
 
   const tm = (ms) => ms ? new Date(ms).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+  const isPre = (i) => i.type === 'preset';
+  const numOf = (i) => Number(i.no) || 0;
+
+  function updateCounts() {
+    const counts = { pending: 0, answered: 0, all: items.length };
+    items.forEach((i) => { counts[i.status]++; });
+    Object.keys(counts).forEach((k) => { $('c-' + k).textContent = counts[k]; });
+    $('c-pending').classList.toggle('has', counts.pending > 0);
+    document.title = (counts.pending ? '(' + counts.pending + ') ' : '') + code + ' · Q&A Console';
+  }
+
+  // เรียง: ติดดาวบนสุด (คำถามที่เตรียมไว้ก่อน ตามลำดับ P1, P2) → คำถามจากผู้เข้าร่วม ใหม่สุดอยู่บน
+  function order(a, b) {
+    if (tab === 'all' && a.status !== b.status) return a.status === 'pending' ? -1 : 1;
+    if (tab === 'answered') return b.updatedAt - a.updatedAt;
+    if (a.starred !== b.starred) return a.starred ? -1 : 1;
+    if (isPre(a) !== isPre(b)) return isPre(a) ? -1 : 1;
+    if (isPre(a)) return String(a.no).localeCompare(String(b.no), undefined, { numeric: true });
+    return (b.at - a.at) || (numOf(b) - numOf(a));
+  }
 
   function render() {
     if (view !== 'session') return;
-    const counts = { new: 0, approved: 0, answered: 0, hidden: 0 };
-    items.forEach((i) => { counts[i.status]++; });
-    Object.keys(counts).forEach((k) => { $('c-' + k).textContent = counts[k]; });
-    $('c-new').classList.toggle('has', counts.new > 0);
-    document.title = (counts.new ? '(' + counts.new + ') ' : '') + code + ' · Q&A Console';
-
+    updateCounts();
     const term = $('search').value.trim().toLowerCase();
-    let list = items.filter((i) => i.status === tab &&
-      (!term || (i.id + ' ' + i.question + ' ' + i.name + ' ' + i.org + ' ' + i.note).toLowerCase().indexOf(term) >= 0));
-    if (tab === 'answered' || tab === 'hidden') list.sort((a, b) => b.updatedAt - a.updatedAt);
-    else list.sort((a, b) => (b.starred - a.starred) || (b.at - a.at));   // ใหม่สุดอยู่บน
+    const list = items.filter((i) => (tab === 'all' || i.status === tab) &&
+      (!term || (i.no + ' ' + i.id + ' ' + i.question + ' ' + i.name + ' ' + i.org + ' ' + i.note).toLowerCase().indexOf(term) >= 0))
+      .sort(order);
 
     if (!list.length) {
       if (firstLoad) return;
-      const msg = { new: ['ยังไม่มีคำถามใหม่ใน Session นี้', 'คำถามที่ผู้เข้าร่วมส่งในช่วง Session นี้จะแสดงที่นี่ภายในไม่กี่วินาที'],
-        approved: ['คิว MC ว่างอยู่', 'คำถามที่ผ่านการคัดกรองจากแท็บ “ใหม่” จะมาอยู่ที่นี่'],
-        answered: ['ยังไม่มีคำถามที่ตอบแล้ว', ''], hidden: ['ไม่มีคำถามที่ซ่อนไว้', ''] }[tab];
+      const msg = { pending: ['ไม่มีคำถามที่ยังไม่ตอบ', 'คำถามที่ผู้เข้าร่วมส่งในช่วง Session นี้จะแสดงที่นี่ภายในไม่กี่วินาที'],
+        answered: ['ยังไม่มีคำถามที่ตอบแล้ว', ''], all: ['ยังไม่มีคำถามใน Session นี้', 'คำถามที่ผู้เข้าร่วมส่งในช่วง Session นี้จะแสดงที่นี่ภายในไม่กี่วินาที'] }[tab];
       $('list').innerHTML = '<div class="empty"><b>' + esc(term ? 'ไม่พบคำถามที่ตรงกับคำค้น' : msg[0]) + '</b>' + esc(term ? '' : msg[1]) + '</div>';
       return;
     }
@@ -404,44 +437,56 @@ body.big .by{font-size:15px}
   }
 
   function card(i) {
-    const by = i.name ? esc(i.name) + (i.org ? ' · ' + esc(i.org) : '') : (i.org ? 'ไม่ระบุชื่อ · ' + esc(i.org) : 'ไม่ระบุชื่อ');
+    const pre = isPre(i), done = i.status === 'answered';
+    const badge = pre
+      ? '<span class="num pre" aria-label="คำถามที่เตรียมไว้" title="คำถามที่เตรียมไว้">★</span>'
+      : '<span class="num' + (String(i.no).length >= 3 ? ' w3' : '') + '" aria-label="คำถามที่ ' + esc(i.no) + '">' + esc(i.no) + '</span>';
+    const by = pre ? '' : (i.name ? esc(i.name) + (i.org ? ' · ' + esc(i.org) : '') : (i.org ? 'ไม่ระบุชื่อ · ' + esc(i.org) : 'ไม่ระบุชื่อ'));
     const b = (act, label, cls) => '<button class="a ' + (cls || '') + '" data-act="' + act + '" data-id="' + esc(i.id) + '">' + label + '</button>';
-    const star = b('star', i.starred ? '★ ปักแล้ว' : '☆ ปักดาว', 'st' + (i.starred ? ' on' : ''));
+
     let acts = '';
-    if (i.status === 'new') acts = b('approve', 'ส่งเข้าคิว MC', 'pri') + star + b('note', 'โน้ต') + b('move', 'ย้าย Session') + b('hide', 'ซ่อน');
-    else if (i.status === 'approved') acts = b('answer', '✓ ตอบแล้ว', 'okb') + star + b('note', 'โน้ต') + b('back', 'ย้ายกลับไปคัดกรอง') + b('hide', 'ซ่อน');
-    else if (i.status === 'answered') acts = b('requeue', 'กลับเข้าคิว MC') + b('note', 'โน้ต');
-    else acts = b('restore', 'กู้คืนไปที่ “ใหม่”') + b('move', 'ย้าย Session');
+    if (isOfficer()) {
+      acts = (done ? b('unanswer', '↺ ยังไม่ตอบ') : b('answer', '✓ ตอบแล้ว', 'okb')) +
+        b('star', i.starred ? '★ ติดดาวแล้ว' : '☆ ติดดาว', 'st' + (i.starred ? ' on' : '')) +
+        b('note', 'โน้ต') + (pre ? '' : b('move', 'ย้าย Session'));
+    }
     let edit = '';
-    if (editing === i.id && editKind === 'note') {
-      edit = '<div class="edit"><textarea id="noteTxt" maxlength="300" placeholder="เช่น สรุปคำถามให้ MC, ระบุวิทยากรที่ควรตอบ">' + esc(noteDraft) + '</textarea>' +
+    if (isOfficer() && editing === i.id && editKind === 'note') {
+      edit = '<div class="edit"><textarea id="noteTxt" maxlength="300" placeholder="เช่น สรุปประเด็นให้ Speaker, ระบุวิทยากรที่ควรตอบ">' + esc(noteDraft) + '</textarea>' +
         '<div class="acts">' + b('saveNote', 'บันทึกโน้ต', 'pri') + b('cancel', 'ยกเลิก') + '</div></div>';
-    } else if (editing === i.id && editKind === 'move') {
+    } else if (isOfficer() && editing === i.id && editKind === 'move') {
       edit = '<div class="edit"><select id="moveSel">' + SESS.filter((s) => s.code !== code).map((s) =>
         '<option value="' + esc(s.code) + '">' + esc(s.code) + ' · ' + esc(s.start) + '–' + esc(s.end) + ' · ' + esc(s.title) + '</option>').join('') + '</select>' +
         '<div class="acts">' + b('doMove', 'ย้ายไป Session นี้', 'pri') + b('cancel', 'ยกเลิก') + '</div></div>';
     }
-    return '<article class="q' + (i.starred ? ' star' : '') + (fresh.has(i.id) ? ' fresh' : '') + '">' +
-      '<div class="meta"><span class="qid">' + esc(i.id) + '</span><span>' + esc(tm(i.at)) + '</span></div>' +
+    const isEditing = isOfficer() && editing === i.id;
+    return '<article class="q' + (i.starred ? ' star' : '') + (done ? ' done' : '') + (fresh.has(i.id) ? ' fresh' : '') + '">' + badge +
+      '<div class="qbody">' +
+      '<div class="meta">' +
+        (pre ? '<span class="tag pre">คำถามที่เตรียมไว้</span>' : '<span>คำถามที่ ' + esc(i.no) + ' · ' + esc(tm(i.at)) + ' น.</span>') +
+        (i.starred && !pre ? '<span class="tag st" title="ติดดาว">★</span>' : '') +
+        (done ? '<span class="tag ok">✓ ตอบแล้ว</span>' : '') +
+      '</div>' +
       '<div class="qt">' + esc(i.question) + '</div>' +
-      '<div class="by">' + by + '</div>' +
-      (i.note && !(editing === i.id && editKind === 'note') ? '<div class="note"><b>โน้ต:</b> ' + esc(i.note) + '</div>' : '') +
-      edit + (editing === i.id ? '' : '<div class="acts">' + acts + '</div>') +
-      (i.updatedBy ? '<div class="upd">ล่าสุด: ' + esc(i.updatedBy) + ' · ' + esc(tm(i.updatedAt)) + '</div>' : '') +
-      '</article>';
+      (by ? '<div class="by">' + by + '</div>' : '') +
+      (i.note && !(isEditing && editKind === 'note') ? '<div class="note"><b>โน้ต:</b> ' + esc(i.note) + '</div>' : '') +
+      edit + (acts && !isEditing ? '<div class="acts">' + acts + '</div>' : '') +
+      (isOfficer() && i.updatedBy ? '<div class="upd">ล่าสุด: ' + esc(i.updatedBy) + ' · ' + esc(tm(i.updatedAt)) + '</div>' : '') +
+      '</div></article>';
   }
 
   $('list').addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-act]'); if (!btn) return;
+    const btn = e.target.closest('button[data-act]'); if (!btn || !isOfficer()) return;
     const id = btn.dataset.id, a = btn.dataset.act;
     const it = items.find((x) => x.id === id); if (!it) return;
-    const map = { approve: 'approved', answer: 'answered', back: 'new', hide: 'hidden', requeue: 'approved', restore: 'new' };
-    if (map[a]) return update(it, { status: map[a] }, id + ' → ' + LABEL[map[a]], true);
+    const label = isPre(it) ? 'คำถามที่เตรียมไว้' : 'คำถามที่ ' + it.no;
+    if (a === 'answer') return update(it, { status: 'answered' }, label + ' → ตอบแล้ว', true);
+    if (a === 'unanswer') return update(it, { status: 'pending' }, label + ' → ยังไม่ตอบ', true);
     if (a === 'star') return update(it, { starred: !it.starred });
     if (a === 'note') { editing = id; editKind = 'note'; noteDraft = it.note || ''; render(); const t = $('noteTxt'); if (t) t.focus(); return; }
     if (a === 'move') { editing = id; editKind = 'move'; render(); return; }
     if (a === 'cancel') { editing = null; render(); return; }
-    if (a === 'saveNote') { const v = ($('noteTxt').value || '').trim(); editing = null; return update(it, { note: v }, 'บันทึกโน้ต ' + id); }
+    if (a === 'saveNote') { const v = ($('noteTxt').value || '').trim(); editing = null; return update(it, { note: v }, 'บันทึกโน้ตแล้ว'); }
     if (a === 'doMove') { const to = $('moveSel').value; editing = null; return moveQ(it, to); }
   });
   $('list').addEventListener('input', (e) => { if (e.target.id === 'noteTxt') noteDraft = e.target.value; });
@@ -468,7 +513,7 @@ body.big .by{font-size:15px}
       const r = await call('updateQuestion', KEY, it.id, { moveTo: to }, role);
       if (!r.ok) throw new Error(r.error);
       hash = null;
-      toast('ย้าย ' + it.id + ' ไป ' + to + ' แล้ว (หมายเลขใหม่ ' + r.id + ')');
+      toast('ย้ายคำถามที่ ' + it.no + ' ไป ' + to + ' แล้ว (เป็น ' + r.id + ')');
     } catch (err) {
       if (handleErr(err)) return;
       toast('ย้ายไม่สำเร็จ: ' + (err.message || 'ลองใหม่อีกครั้ง'));
@@ -514,8 +559,9 @@ body.big .by{font-size:15px}
 
   // ---------- Boot ----------
   if (ls.get('qa_big') === '1') setBig(true);
+  applyRole();
   loadOverview().then(() => { const last = ls.get('qa_view'); if (last && byCode(last)) openSession(last); });
-  hubTimer = setInterval(() => { if (!document.hidden) loadOverview(); }, view === 'hub' ? 8000 : 8000);
+  hubTimer = setInterval(() => { if (!document.hidden) loadOverview(); }, 8000);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     loadOverview(); if (view === 'session') loadSession();
